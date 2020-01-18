@@ -2,7 +2,7 @@
 1579336333 source:/home/psatala/Codeblocks/SOI_lab6/main.cpp
 	"VirtualDisk.h"
 
-1579337061 /home/psatala/Codeblocks/SOI_lab6/VirtualDisk.h
+1579347929 /home/psatala/Codeblocks/SOI_lab6/VirtualDisk.h
 	<iostream>
 	<unistd.h>
 	<stdlib.h>
