@@ -14,6 +14,8 @@ int main(int argc, char** argv)
     }
 
     VirtualDisk myDisk(argv[1]);
+    myDisk.copyToVDisk("test");
+    myDisk.copyFromVDisk("test");
 
     return 0;
 }

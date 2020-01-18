@@ -23,6 +23,7 @@
 #define NAMES_OFFSET 62
 #define OTHER_OFFSET 126
 #define NAME_SIZE 8
+#define ADDRESS_SIZE 2
 
 ///other
 #define BYTE_SIZE 8
@@ -54,7 +55,7 @@
         nIB = f / 65
 
         maxDiskSize = 128MB <- calculated from size of data bitmap (4kB = 32kb, which gives 32768 data blocks, each 4kB, total 128MB),
-        also limited by (unsigned) short int range (65536)
+        also limited by (unsigned) uint16_t range (65536)
 **/
 
 
@@ -75,9 +76,9 @@ class VirtualDisk
     void openFile();
     void closeFile();
     void prepareBitmaps();
-    short int findNextFreeBlock();
-    short int findNextFreeInode();
-    short int checkByteForFirstZero(uint8_t byte); ///auxiliary function for finding next inode/block
+    uint16_t findNextFreeBlock();
+    uint16_t findNextFreeInode();
+    uint16_t checkByteForFirstZero(uint8_t byte); ///auxiliary function for finding next inode/block
     void changeINodeStatus(int iNodeId, bool newStatus);
     void changeBlockStatus(int blockId, bool newStatus);
     bool checkBitFromBitmap(int bitmapId, int entryId);
@@ -90,7 +91,7 @@ public:
     int getVDiskSize();
     void setVDiskParameters();
     void copyToVDisk(char* fileNameToCopy);
-    void copyFromDisk(char* fileNameToCopy);
+    void copyFromVDisk(char* fileNameToCopy);
 };
 
 
@@ -142,21 +143,21 @@ void VirtualDisk::prepareBitmaps()
 
 
 
-short int VirtualDisk::checkByteForFirstZero(uint8_t byte)
+uint16_t VirtualDisk::checkByteForFirstZero(uint8_t byte)
 {
-    for(int i = 1; i <= BYTE_SIZE; ++i)
-        if(!(byte & (1 << (BYTE_SIZE - i))))
+    for(int i = 0; i < BYTE_SIZE; ++i)
+        if(!(byte & (1 << (BYTE_SIZE - 1 - i))))
             return i;
     return -1;
 }
 
 
 
-short int VirtualDisk::findNextFreeBlock()
+uint16_t VirtualDisk::findNextFreeBlock()
 {
     bool found = false;
     int indexInByte = -1;
-    short int result;
+    uint16_t result;
     unsigned char c; ///auxiliary
 
     fseek(vDiskFile, dataBitmapIndex * BLOCK_SIZE, SEEK_SET);
@@ -177,11 +178,11 @@ short int VirtualDisk::findNextFreeBlock()
 
 
 
-short int VirtualDisk::findNextFreeInode()
+uint16_t VirtualDisk::findNextFreeInode()
 {
     bool found = false;
     int indexInByte = -1;
-    short int result;
+    uint16_t result;
     unsigned char c; ///auxiliary
 
     fseek(vDiskFile, iNodeBitmapIndex * BLOCK_SIZE, SEEK_SET);
@@ -337,8 +338,8 @@ void VirtualDisk::copyToVDisk(char* fileNameToCopy)
 {
     FILE* fileToCopy;
     unsigned char* buffer = new unsigned char [BLOCK_SIZE]; ///auxiliary buffer to store data
-    short int iNumber;
-    short int blockAddress;
+    uint16_t iNumber;
+    uint16_t blockAddress;
     int countBlocks = 0;
     int bytesRead;
 
@@ -362,6 +363,7 @@ void VirtualDisk::copyToVDisk(char* fileNameToCopy)
         if(ferror(fileToCopy))
         {
             std::cerr << "Error reading file to copy!\n";
+            fclose(fileToCopy);
             return;
         }
 
@@ -371,6 +373,7 @@ void VirtualDisk::copyToVDisk(char* fileNameToCopy)
         if(-1 == blockAddress)
         {
             std::cerr << "No free block found (not enough free space)! Copying file stopped.\n";
+            fclose(fileToCopy);
             return;
         }
         changeBlockStatus(blockAddress, USED);  ///mark data block as used
@@ -384,18 +387,22 @@ void VirtualDisk::copyToVDisk(char* fileNameToCopy)
         fwrite(buffer, 1, bytesRead, vDiskFile);
     }
 
-
+    fclose(fileToCopy);
 }
 
 
 
-void VirtualDisk::copyFromDisk(char* fileNameToCopy)
+void VirtualDisk::copyFromVDisk(char* fileNameToCopy)
 {
+    FILE* fileToCopy;
+    unsigned char* buffer = new unsigned char [BLOCK_SIZE]; ///auxiliary buffer to store data
+    uint16_t blockAddress;
     bool found = false;
-    int iNumber;
+    uint16_t iNumber;
+
     std::string nameToFind = (std::string)fileNameToCopy;
     std::string temporaryString;
-    char* buffer = new char [NAME_SIZE];
+    char* nameBuffer = new char [NAME_SIZE];
     nameToFind = nameToFind.substr(0, NAME_SIZE);
 
     for(int i = 0; i < BLOCK_SIZE && !found; ++i)
@@ -403,8 +410,8 @@ void VirtualDisk::copyFromDisk(char* fileNameToCopy)
         if(checkBitFromBitmap(iNodeBitmapIndex, i)) ///i-node in use
         {
             fseek(vDiskFile, firstINodeIndex * BLOCK_SIZE + i * I_NODE_SIZE + NAMES_OFFSET, SEEK_SET);
-            fread(buffer, 1, NAME_SIZE, vDiskFile);
-            temporaryString = (std::string)buffer;
+            fread(nameBuffer, 1, NAME_SIZE, vDiskFile);
+            temporaryString = (std::string)nameBuffer;
             if(0 == nameToFind.compare(temporaryString)) ///name found
             {
                 found = true;
@@ -420,7 +427,28 @@ void VirtualDisk::copyFromDisk(char* fileNameToCopy)
         return;
     }
 
+    fileToCopy = fopen("copiedFile", "wb+");
+    for(int i = 0; i < MAX_FILE_SIZE_IN_BLOCKS; ++i)
+    {
+        ///read block address
+        fseek(vDiskFile, firstINodeIndex * BLOCK_SIZE + iNumber * I_NODE_SIZE + DATA_OFFSET + i * ADDRESS_SIZE, SEEK_SET);
+        fread(&blockAddress, sizeof(uint16_t), 1, vDiskFile);
 
+        ///read block content into buffer
+        fseek(vDiskFile, (firstDataIndex + blockAddress) * BLOCK_SIZE, SEEK_SET);
+        if(BLOCK_SIZE != fread(buffer, 1, BLOCK_SIZE, vDiskFile))
+        {
+            std::cerr << "Could not read the entire block!\n";
+            fclose(fileToCopy);
+            return;
+        }
+
+        ///write buffer into file
+        fseek(fileToCopy, 0, SEEK_END);
+        fwrite(buffer, 1, BLOCK_SIZE, fileToCopy);
+    }
+
+    fclose(fileToCopy);
 }
 
 
