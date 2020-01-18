@@ -2,6 +2,7 @@
 #define VIRTUALDISK_H_INCLUDED
 
 #include <iostream>
+#include <string>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -76,9 +77,10 @@ class VirtualDisk
     void prepareBitmaps();
     short int findNextFreeBlock();
     short int findNextFreeInode();
-    short int checkBiteForFirstZero(uint8_t byte); ///auxiliary function for finding next inode/block
+    short int checkByteForFirstZero(uint8_t byte); ///auxiliary function for finding next inode/block
     void changeINodeStatus(int iNodeId, bool newStatus);
     void changeBlockStatus(int blockId, bool newStatus);
+    bool checkBitFromBitmap(int bitmapId, int entryId);
 
 public:
     VirtualDisk(char* newVDiskFileName = DEFAULT_NAME);
@@ -88,6 +90,7 @@ public:
     int getVDiskSize();
     void setVDiskParameters();
     void copyToVDisk(char* fileNameToCopy);
+    void copyFromDisk(char* fileNameToCopy);
 };
 
 
@@ -139,7 +142,7 @@ void VirtualDisk::prepareBitmaps()
 
 
 
-short int VirtualDisk::checkBiteForFirstZero(uint8_t byte)
+short int VirtualDisk::checkByteForFirstZero(uint8_t byte)
 {
     for(int i = 1; i <= BYTE_SIZE; ++i)
         if(!(byte & (1 << (BYTE_SIZE - i))))
@@ -161,7 +164,7 @@ short int VirtualDisk::findNextFreeBlock()
     for(int i = 0; i < BLOCK_SIZE && !found; ++i)
     {
         c = fgetc(vDiskFile);
-        indexInByte = checkBiteForFirstZero((uint8_t)c);
+        indexInByte = checkByteForFirstZero((uint8_t)c);
         if(indexInByte != -1)
         {
             found = true;
@@ -186,7 +189,7 @@ short int VirtualDisk::findNextFreeInode()
     for(int i = 0; i < BLOCK_SIZE && !found; ++i)
     {
         c = fgetc(vDiskFile);
-        indexInByte = checkBiteForFirstZero((uint8_t)c);
+        indexInByte = checkByteForFirstZero((uint8_t)c);
         if(indexInByte != -1)
         {
             found = true;
@@ -243,6 +246,23 @@ void VirtualDisk::changeINodeStatus(int iNodeId, bool newStatus)
     ///write
     fseek(vDiskFile, iNodeBitmapIndex * BLOCK_SIZE + iNodeId / BYTE_SIZE, SEEK_SET);
     fputc(c, vDiskFile);
+}
+
+
+
+bool VirtualDisk::checkBitFromBitmap(int bitmapId, int entryId)
+{
+    unsigned char c;
+    uint8_t byte;
+
+    ///read
+    fseek(vDiskFile, bitmapId * BLOCK_SIZE + entryId / BYTE_SIZE, SEEK_SET);
+    c = fgetc(vDiskFile);
+
+    ///check
+    byte = (uint8_t)c;
+    return byte & (1 << (entryId % BYTE_SIZE));
+
 }
 
 
@@ -367,6 +387,41 @@ void VirtualDisk::copyToVDisk(char* fileNameToCopy)
 
 }
 
+
+
+void VirtualDisk::copyFromDisk(char* fileNameToCopy)
+{
+    bool found = false;
+    int iNumber;
+    std::string nameToFind = (std::string)fileNameToCopy;
+    std::string temporaryString;
+    char* buffer = new char [NAME_SIZE];
+    nameToFind = nameToFind.substr(0, NAME_SIZE);
+
+    for(int i = 0; i < BLOCK_SIZE && !found; ++i)
+    {
+        if(checkBitFromBitmap(iNodeBitmapIndex, i)) ///i-node in use
+        {
+            fseek(vDiskFile, firstINodeIndex * BLOCK_SIZE + i * I_NODE_SIZE + NAMES_OFFSET, SEEK_SET);
+            fread(buffer, 1, NAME_SIZE, vDiskFile);
+            temporaryString = (std::string)buffer;
+            if(0 == nameToFind.compare(temporaryString)) ///name found
+            {
+                found = true;
+                iNumber = i;
+            }
+
+        }
+    }
+
+    if(!found)
+    {
+        std::cerr << "No such file exists!\n";
+        return;
+    }
+
+
+}
 
 
 #endif // VIRTUALDISK_H_INCLUDED
