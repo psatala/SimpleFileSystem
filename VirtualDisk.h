@@ -13,15 +13,18 @@
 #define MIN_DISK_SIZE 3 * BLOCK_SIZE
 #define MAX_DISK_SIZE 128 * 1024 * 1024
 #define AVERAGE_FILE_SIZE_IN_BLOCKS 2
-#define MAX_FILE_SIZE_IN_BLOCKS 31
+#define MAX_FILE_SIZE_IN_BLOCKS 57
 #define N_FILES_PER_I_NODE_BLOCK 32
 #define DEFAULT_NAME "vDisk.vdf"
 
 ///i-node defines
 #define I_NODE_SIZE 128
 #define DATA_OFFSET 0
-#define NAMES_OFFSET 62
-#define OTHER_OFFSET 126
+#define NAMES_OFFSET 114
+#define OTHER_OFFSET 122
+#define BLOCKS_USED_OFFSET 122
+#define BYTES_USED_IN_LAST_BLOCK_OFFSET 124
+#define IS_CATALOGUE_OFFSET 126
 #define NAME_SIZE 8
 #define ADDRESS_SIZE 2
 
@@ -340,12 +343,12 @@ void VirtualDisk::copyToVDisk(char* fileNameToCopy)
     unsigned char* buffer = new unsigned char [BLOCK_SIZE]; ///auxiliary buffer to store data
     uint16_t iNumber;
     uint16_t blockAddress;
-    int countBlocks = 0;
+    uint16_t countBlocks = 0;
     int bytesRead;
 
     ///find next free i-node or terminate when there is none
     iNumber = findNextFreeInode();
-    if(-1 == iNumber)
+    if(-1 == iNumber || iNumber > (BLOCK_SIZE / I_NODE_SIZE) * nInodeBlocks)
     {
         std::cerr << "No free i-node found (too many files)!\n";
         return;
@@ -367,10 +370,17 @@ void VirtualDisk::copyToVDisk(char* fileNameToCopy)
             return;
         }
 
+        ///note how many bytes in last block used
+        if(bytesRead != BLOCK_SIZE)  ///no ferror here
+        {
+            fseek(vDiskFile, firstINodeIndex * BLOCK_SIZE + iNumber * I_NODE_SIZE + BYTES_USED_IN_LAST_BLOCK_OFFSET, SEEK_SET);
+            fwrite((const void*) &bytesRead, sizeof(bytesRead), 1, vDiskFile);
+        }
+
         ++countBlocks;
 
         blockAddress = findNextFreeBlock(); ///find next free block
-        if(-1 == blockAddress)
+        if(-1 == blockAddress || blockAddress > freeBlocks - nInodeBlocks)
         {
             std::cerr << "No free block found (not enough free space)! Copying file stopped.\n";
             fclose(fileToCopy);
@@ -387,6 +397,10 @@ void VirtualDisk::copyToVDisk(char* fileNameToCopy)
         fwrite(buffer, 1, bytesRead, vDiskFile);
     }
 
+    ///note how many blocks were used
+    fseek(vDiskFile, firstINodeIndex * BLOCK_SIZE + iNumber * I_NODE_SIZE + BLOCKS_USED_OFFSET, SEEK_SET);
+    fwrite((const void*) &countBlocks, sizeof(countBlocks), 1, vDiskFile);
+
     fclose(fileToCopy);
 }
 
@@ -397,8 +411,11 @@ void VirtualDisk::copyFromVDisk(char* fileNameToCopy)
     FILE* fileToCopy;
     unsigned char* buffer = new unsigned char [BLOCK_SIZE]; ///auxiliary buffer to store data
     uint16_t blockAddress;
-    bool found = false;
+    uint16_t countBlocks;
+    uint16_t bytesUsedInLastBlock;
     uint16_t iNumber;
+    uint16_t expectedBytes;
+    bool found = false;
 
     std::string nameToFind = (std::string)fileNameToCopy;
     std::string temporaryString;
@@ -427,25 +444,42 @@ void VirtualDisk::copyFromVDisk(char* fileNameToCopy)
         return;
     }
 
+
+    ///read how many blocks were used
+    fseek(vDiskFile, firstINodeIndex * BLOCK_SIZE + iNumber * I_NODE_SIZE + BLOCKS_USED_OFFSET, SEEK_SET);
+    fread(&countBlocks, sizeof(countBlocks), 1, vDiskFile);
+
+    ///read how many bites in last block were used
+    fseek(vDiskFile, firstINodeIndex * BLOCK_SIZE + iNumber * I_NODE_SIZE + BYTES_USED_IN_LAST_BLOCK_OFFSET, SEEK_SET);
+    fread(&bytesUsedInLastBlock, sizeof(bytesUsedInLastBlock), 1, vDiskFile);
+
+
     fileToCopy = fopen("copiedFile", "wb+");
-    for(int i = 0; i < MAX_FILE_SIZE_IN_BLOCKS; ++i)
+    for(int i = 0; i < countBlocks; ++i)
     {
+        if(i < countBlocks - 1) ///normal case
+            expectedBytes = BLOCK_SIZE;
+        else                    ///last block case
+            expectedBytes = bytesUsedInLastBlock;
+
+
         ///read block address
         fseek(vDiskFile, firstINodeIndex * BLOCK_SIZE + iNumber * I_NODE_SIZE + DATA_OFFSET + i * ADDRESS_SIZE, SEEK_SET);
         fread(&blockAddress, sizeof(uint16_t), 1, vDiskFile);
 
         ///read block content into buffer
         fseek(vDiskFile, (firstDataIndex + blockAddress) * BLOCK_SIZE, SEEK_SET);
-        if(BLOCK_SIZE != fread(buffer, 1, BLOCK_SIZE, vDiskFile))
+
+
+        if(expectedBytes != fread(buffer, 1, expectedBytes, vDiskFile))
         {
             std::cerr << "Could not read the entire block!\n";
             fclose(fileToCopy);
             return;
         }
-
         ///write buffer into file
         fseek(fileToCopy, 0, SEEK_END);
-        fwrite(buffer, 1, BLOCK_SIZE, fileToCopy);
+        fwrite(buffer, 1, expectedBytes, fileToCopy);
     }
 
     fclose(fileToCopy);
