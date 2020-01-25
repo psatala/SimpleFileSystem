@@ -1,5 +1,5 @@
 #include "VirtualDisk.h"
-
+#include <string.h>
 
 using namespace std;
 
@@ -19,8 +19,9 @@ int main(int argc, char** argv)
     myDisk.printDiskUsageInfo();
     myDisk.deleteBytes("test2", 10000);
     myDisk.printDiskUsageInfo();
-    myDisk.copyFromVDisk("test2");
+    myDisk.addBytes("test2", 12000);
     myDisk.printDiskUsageInfo();
+    myDisk.copyFromVDisk("test2");
 
     return 0;
 }

@@ -94,8 +94,7 @@ public:
     void setVDiskParameters();
     void copyToVDisk(char* fileNameToCopy);
     void copyFromVDisk(char* fileNameToCopy);
-    void addBytes(char* fileName, char* bufferOfNewBytes);
-    void addEmptyBytes(char* fileName, unsigned int nBytesToAdd);
+    void addBytes(char* fileName, unsigned int nBytesToAdd);
     void deleteBytes(char* fileName, unsigned int nBytesToDelete);
     void deleteFile(char* fileNameToDelete);
     void printDiskUsageInfo();
@@ -154,7 +153,7 @@ void VirtualDisk::prepareBitmaps()
 uint16_t VirtualDisk::findNextFreeBlock()
 {
     bool found = false;
-    uint16_t result;
+    int result = -1;
 
     for(int i = 0; i < nBlocks - firstDataIndex && !found; ++i)
     {
@@ -173,7 +172,7 @@ uint16_t VirtualDisk::findNextFreeBlock()
 uint16_t VirtualDisk::findNextFreeInode()
 {
     bool found = false;
-    uint16_t result;
+    int result = -1;
 
     for(int i = 0; i < nInodeBlocks * BLOCK_SIZE / I_NODE_SIZE && !found; ++i)
     {
@@ -480,7 +479,6 @@ void VirtualDisk::copyFromVDisk(char* fileNameToCopy)
 
 
 
-
 void VirtualDisk::deleteFile(char* fileNameToDelete)
 {
     uint16_t blockAddress;
@@ -519,6 +517,67 @@ void VirtualDisk::deleteFile(char* fileNameToDelete)
 
     ///free i-node
     changeINodeStatus(iNumber, FREE);
+}
+
+
+
+void VirtualDisk::addBytes(char* fileName, unsigned int nBytesToAdd)
+{
+    uint16_t iNumber;
+    uint32_t oldFileSize;
+    uint32_t newFileSize;
+    uint16_t nBlocksToAllocate = 0;
+    uint16_t countBlocks;
+    uint16_t bytesUsedInLastBlock;
+    uint16_t blockAddress;
+
+    iNumber = getINumber(fileName);
+    if(-1 == iNumber)
+    {
+        std::cerr << "No such file exists!\n";
+        return;
+    }
+
+
+    ///read size of file
+    fseek(vDiskFile, firstINodeIndex * BLOCK_SIZE + iNumber * I_NODE_SIZE + SIZE_OFFSET, SEEK_SET);
+    fread(&oldFileSize, sizeof(oldFileSize), 1, vDiskFile);
+
+    newFileSize = oldFileSize + nBytesToAdd;
+
+    ///write size of file
+    fseek(vDiskFile, firstINodeIndex * BLOCK_SIZE + iNumber * I_NODE_SIZE + SIZE_OFFSET, SEEK_SET);
+    fwrite((const void*) &newFileSize, sizeof(newFileSize), 1, vDiskFile);
+
+    bytesUsedInLastBlock = oldFileSize % BLOCK_SIZE;
+    countBlocks = oldFileSize / BLOCK_SIZE;
+    if(bytesUsedInLastBlock)
+        ++countBlocks;
+
+    ///calculate how many last blocks should be allocated
+    if(bytesUsedInLastBlock)  ///if last block was not empty
+        nBytesToAdd -= (BLOCK_SIZE - bytesUsedInLastBlock);
+
+    nBlocksToAllocate += (nBytesToAdd / BLOCK_SIZE); ///other full blocks
+    if(nBytesToAdd % BLOCK_SIZE)
+        ++nBlocksToAllocate;
+
+    for(int i = 1; i <= nBlocksToAllocate; ++i)
+    {
+        blockAddress = findNextFreeBlock(); ///find next free block
+        if(-1 == blockAddress || blockAddress > freeBlocks - nInodeBlocks)
+        {
+            std::cerr << "No free block found (not enough free space)! Adding bytes stopped.\n";
+            return;
+        }
+        changeBlockStatus(blockAddress, USED);  ///mark data block as used
+
+        ///add block address to i-node table
+        fseek(vDiskFile, firstINodeIndex * BLOCK_SIZE + iNumber * I_NODE_SIZE + DATA_OFFSET + (countBlocks + i) * sizeof(blockAddress), SEEK_SET);  ///set file pointer to next free block address
+        fwrite((const void* ) &blockAddress, sizeof(blockAddress), 1, vDiskFile);
+
+    }
+
 }
 
 
@@ -567,7 +626,6 @@ void VirtualDisk::deleteBytes(char* fileName, unsigned int nBytesToDelete)
 
     for(int i = 0; i < nBlocksToFree; ++i)
     {
-        ///read block address
         ///read block address
         fseek(vDiskFile, firstINodeIndex * BLOCK_SIZE + iNumber * I_NODE_SIZE + DATA_OFFSET + (countBlocks - i - 1) * ADDRESS_SIZE, SEEK_SET);
         fread(&blockAddress, sizeof(uint16_t), 1, vDiskFile);
