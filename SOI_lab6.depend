@@ -1,8 +1,8 @@
 # depslib dependency file v1.0
-1579366564 source:/home/psatala/Codeblocks/SOI_lab6/main.cpp
+1579965170 source:/home/psatala/Codeblocks/SOI_lab6/main.cpp
 	"VirtualDisk.h"
 
-1579395411 /home/psatala/Codeblocks/SOI_lab6/VirtualDisk.h
+1579965952 /home/psatala/Codeblocks/SOI_lab6/VirtualDisk.h
 	<iostream>
 	<string>
 	<unistd.h>
