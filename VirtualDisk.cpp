@@ -34,11 +34,13 @@ void VirtualDisk::closeFile()
 
 void VirtualDisk::prepareBitmaps()
 {
-
-    fseek(vDiskFile, iNodeBitmapIndex * BLOCK_SIZE, SEEK_SET);
-    for(int i = 0; i < 2 * BLOCK_SIZE; ++i)
+    if(0 == findNextFreeInode())   ///root directory not yet created - file sytem being created, not restored
     {
-        fputc('\0', vDiskFile);
+        fseek(vDiskFile, iNodeBitmapIndex * BLOCK_SIZE, SEEK_SET);
+        for(int i = 0; i < 2 * BLOCK_SIZE; ++i)
+        {
+            fputc('\0', vDiskFile);
+        }
     }
 }
 
@@ -84,11 +86,14 @@ short int VirtualDisk::createEmptyDirectory()
 
 void VirtualDisk::createRootDirectory()
 {
-    uint16_t rootINumber = createEmptyDirectory();
-    currentDirectory = rootINumber;
+    if(0 == findNextFreeInode()) ///root directory not yet created - file sytem being created, not restored
+    {
+        uint16_t rootINumber = createEmptyDirectory();
+        currentDirectory = rootINumber;
 
-    addDirectoryEntry(rootINumber, rootINumber, ".");
-    addDirectoryEntry(rootINumber, rootINumber, "..");
+        addDirectoryEntry(rootINumber, rootINumber, ".");
+        addDirectoryEntry(rootINumber, rootINumber, "..");
+    }
 }
 
 
@@ -322,9 +327,9 @@ short int VirtualDisk::specifyWorkingDirectory(std::vector<std::string> parsedPa
         workingDirectory = getINumber((char*)parsedPath[i].c_str(), (uint16_t)workingDirectory);
 
         ///update working path
-        if(parsedPath[i] == "..")
+        if(parsedPath[i] == ".." && !workingPath.empty())
             workingPath.pop_back();
-        else if(parsedPath[i] != ".")
+        else if(parsedPath[i] != "." && parsedPath[i] != "..")
             workingPath.push_back(parsedPath[i]);
 
         ///check if it is a directory
