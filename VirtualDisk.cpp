@@ -126,7 +126,7 @@ void VirtualDisk::addDirectoryEntry(short int directoryINumber, short int iNumbe
     fwrite(fileNameToAdd, 1, DIRECTORY_NAME_SIZE, vDiskFile);
 
     ///add link
-    addLink(iNumberToAdd);
+    increaseLinkCount(iNumberToAdd);
 
     ///update directory size
     sizeOfDirectory += DIRECTORY_ENTRY_SIZE;
@@ -309,6 +309,7 @@ short int VirtualDisk::specifyWorkingDirectory(std::vector<std::string> parsedPa
     int limit;  ///how far to go
 
     workingDirectory = currentDirectory; ///start from current directory
+    workingPath = pathToCurrentDir;      ///start with current path
 
     if(MODE_CD == mode)
         limit = parsedPath.size();       ///go through everything - just like in cd command
@@ -319,6 +320,12 @@ short int VirtualDisk::specifyWorkingDirectory(std::vector<std::string> parsedPa
     {
         ///find i-number for this directory
         workingDirectory = getINumber((char*)parsedPath[i].c_str(), (uint16_t)workingDirectory);
+
+        ///update working path
+        if(parsedPath[i] == "..")
+            workingPath.pop_back();
+        else if(parsedPath[i] != ".")
+            workingPath.push_back(parsedPath[i]);
 
         ///check if it is a directory
         fseek(vDiskFile, firstINodeIndex * BLOCK_SIZE + workingDirectory * I_NODE_SIZE + IS_DIRECTORY_OFFSET, SEEK_SET);
@@ -335,17 +342,42 @@ short int VirtualDisk::specifyWorkingDirectory(std::vector<std::string> parsedPa
 
 
 
+void VirtualDisk::increaseLinkCount(uint16_t fileINumber)
+{
+    uint16_t linkCount;
+    fseek(vDiskFile, firstINodeIndex * BLOCK_SIZE + fileINumber * I_NODE_SIZE + LINK_COUNT_OFFSET, SEEK_SET);
+    fread(&linkCount, sizeof(linkCount), 1, vDiskFile);
+    ++linkCount;
+    fseek(vDiskFile, firstINodeIndex * BLOCK_SIZE + fileINumber * I_NODE_SIZE + LINK_COUNT_OFFSET, SEEK_SET);
+    fwrite((const void* ) &linkCount, sizeof(linkCount), 1, vDiskFile);
+}
+
+
+
+void VirtualDisk::decreaseLinkCount(uint16_t fileINumber)
+{
+    uint16_t linkCount;
+    fseek(vDiskFile, firstINodeIndex * BLOCK_SIZE + fileINumber * I_NODE_SIZE + LINK_COUNT_OFFSET, SEEK_SET);
+    fread(&linkCount, sizeof(linkCount), 1, vDiskFile);
+    --linkCount;
+    fseek(vDiskFile, firstINodeIndex * BLOCK_SIZE + fileINumber * I_NODE_SIZE + LINK_COUNT_OFFSET, SEEK_SET);
+    fwrite((const void* ) &linkCount, sizeof(linkCount), 1, vDiskFile);
+}
+
+
+
+
 
 /********************************************************************************************************************************************************************************************
  *                                                                           public functions                                                                                               *
  ********************************************************************************************************************************************************************************************/
 
 
-VirtualDisk::VirtualDisk(char* newVDiskFileName)
+VirtualDisk::VirtualDisk(char* newVDiskFileName, int diskSize)
 {
     vDiskFileName = newVDiskFileName;
     openFile();
-    setVDiskSize();
+    setVDiskSize(diskSize);
     setVDiskParameters();
     prepareBitmaps();
     createRootDirectory();
@@ -360,12 +392,14 @@ VirtualDisk::~VirtualDisk()
 
 
 
-void VirtualDisk::setVDiskSize()
+void VirtualDisk::setVDiskSize(int newSize)
 {
-    int newSize;
 
-    std::cout << "Please specify size of virtual disk in bytes: ";
-    std::cin >> newSize;
+    if(-1 == newSize)
+    {
+        std::cout << "Please specify size of virtual disk in bytes: ";
+        std::cin >> newSize;
+    }
 
     newSize = newSize - newSize % BLOCK_SIZE;      ///resize to be a multiply of block size
     newSize = std::min(newSize, MAX_DISK_SIZE);    ///resize if size bigger than allowed
@@ -554,7 +588,7 @@ void VirtualDisk::deleteFile(char* fileNameToDelete)
         return;
     }
 
-    removeLink(iNumber);
+    decreaseLinkCount(iNumber);
     fseek(vDiskFile, firstINodeIndex * BLOCK_SIZE + iNumber * I_NODE_SIZE + LINK_COUNT_OFFSET, SEEK_SET);
     fread(&linkCount, sizeof(linkCount), 1, vDiskFile);
     if(linkCount > 0) ///other links point to this file, cannot delete
@@ -789,7 +823,6 @@ void VirtualDisk::listDirectory()
         fread(entryName, sizeof(char), DIRECTORY_NAME_SIZE, vDiskFile);
         puts(entryName);
     }
-    std::cout << "\n";
 }
 
 
@@ -808,28 +841,45 @@ void VirtualDisk::changeDirectory(std::string path)
     std::vector<std::string> parsedPath = parsePath(path);
     specifyWorkingDirectory(parsedPath, MODE_CD);
     currentDirectory = workingDirectory;
+    pathToCurrentDir = workingPath;
 }
 
 
 
-void VirtualDisk::addLink(uint16_t fileINumber)
+void VirtualDisk::printPath()
 {
-    uint16_t linkCount;
-    fseek(vDiskFile, firstINodeIndex * BLOCK_SIZE + fileINumber * I_NODE_SIZE + LINK_COUNT_OFFSET, SEEK_SET);
-    fread(&linkCount, sizeof(linkCount), 1, vDiskFile);
-    ++linkCount;
-    fseek(vDiskFile, firstINodeIndex * BLOCK_SIZE + fileINumber * I_NODE_SIZE + LINK_COUNT_OFFSET, SEEK_SET);
-    fwrite((const void* ) &linkCount, sizeof(linkCount), 1, vDiskFile);
+    if(pathToCurrentDir.empty())                       ///root directory
+        std::cout << "/";
+
+    for(int i = 0; i < pathToCurrentDir.size(); ++i)   ///other directories
+        std::cout << "/" << pathToCurrentDir[i];
+
+    std::cout << "\n";
 }
 
 
 
-void VirtualDisk::removeLink(uint16_t fileINumber)
+void VirtualDisk::addLink(std::string target, std::string linkName)
 {
-    uint16_t linkCount;
-    fseek(vDiskFile, firstINodeIndex * BLOCK_SIZE + fileINumber * I_NODE_SIZE + LINK_COUNT_OFFSET, SEEK_SET);
-    fread(&linkCount, sizeof(linkCount), 1, vDiskFile);
-    --linkCount;
-    fseek(vDiskFile, firstINodeIndex * BLOCK_SIZE + fileINumber * I_NODE_SIZE + LINK_COUNT_OFFSET, SEEK_SET);
-    fwrite((const void* ) &linkCount, sizeof(linkCount), 1, vDiskFile);
+    short int iNumber;
+    bool isDirectory;
+
+    ///find i-number
+    std::vector<std::string> parsedPathToTarget = parsePath(target);
+    specifyWorkingDirectory(parsedPathToTarget, MODE_OTHER);
+    iNumber = getINumber((char*)parsedPathToTarget.back().c_str(), (uint16_t)workingDirectory);
+
+    ///check if it is a directory
+    fseek(vDiskFile, firstINodeIndex * BLOCK_SIZE + iNumber * I_NODE_SIZE + IS_DIRECTORY_OFFSET, SEEK_SET);
+    fread(&isDirectory, sizeof(isDirectory), 1, vDiskFile);
+    if(isDirectory)
+    {
+        std::cerr << "Given file is a directory (links to directories not allowed)!\n";
+        return;
+    }
+
+    ///add to directory
+    std::vector<std::string> parsedPathToNewLink = parsePath(linkName);
+    specifyWorkingDirectory(parsedPathToNewLink, MODE_OTHER);
+    addDirectoryEntry((short int)workingDirectory, iNumber, (char*)parsedPathToNewLink.back().c_str());
 }

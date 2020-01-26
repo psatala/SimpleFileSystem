@@ -56,7 +56,8 @@ class VirtualDisk
 
     int currentDirectory;
     int workingDirectory;
-    std::vector<std::string> path;
+    std::vector<std::string> pathToCurrentDir;
+    std::vector<std::string> workingPath;
 
 
     void openFile();
@@ -77,12 +78,15 @@ class VirtualDisk
     std::vector<std::string> parsePath(std::string path);
     short int specifyWorkingDirectory(std::vector<std::string> parsedPath, int mode = MODE_CD);
 
+    void increaseLinkCount(uint16_t fileINumber);
+    void decreaseLinkCount(uint16_t fileINumber);
+
 public:
 
-    VirtualDisk(char* newVDiskFileName = DEFAULT_NAME);
+    VirtualDisk(char* newVDiskFileName = DEFAULT_NAME, int diskSize = -1);
     ~VirtualDisk();
 
-    void setVDiskSize();
+    void setVDiskSize(int newSize);
     int getVDiskSize();
     void setVDiskParameters();
     void copyToVDisk(std::string filePathToCopy);
@@ -94,8 +98,8 @@ public:
     void createNewDirectory(std::string path);
     void changeDirectory(std::string path);
     void listDirectory();
-    void addLink(uint16_t fileINumber);
-    void removeLink(uint16_t fileINumber);
+    void printPath();
+    void addLink(std::string target, std::string linkName);
 };
 
 
