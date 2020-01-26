@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <string>
+#include <vector>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -53,22 +54,29 @@ class VirtualDisk
     int firstINodeIndex;
     int firstDataIndex;
 
+    int currentDirectory;
+    std::string path;
+
 
     void openFile();
     void closeFile();
     void prepareBitmaps();
+    short int createEmptyDirectory();
     void createRootDirectory();
 
-    uint16_t findNextFreeBlock();
-    uint16_t findNextFreeInode();
+    short int findNextFreeBlock();
+    short int findNextFreeInode();
     void changeINodeStatus(int iNodeId, bool newStatus);
     void changeBlockStatus(int blockId, bool newStatus);
     bool checkBitFromBitmap(int bitmapId, int entryId);
 
-    uint16_t getINumber(char* fileName);
-    void addDirectoryEntry(uint16_t directoryINumber, uint16_t iNumberToAdd, char* fileNameToAdd);
+    short int getINumber(char* fileName, uint16_t directoryINumber);
+    void addDirectoryEntry(short int directoryINumber, short int iNumberToAdd, char* fileNameToAdd);
+    std::vector<std::string> parsePath(std::string path);
+    uint16_t specifyWorkingDirectory(std::vector<std::string> parsedPath);
 
 public:
+
     VirtualDisk(char* newVDiskFileName = DEFAULT_NAME);
     ~VirtualDisk();
 
@@ -81,8 +89,10 @@ public:
     void deleteBytes(char* fileName, unsigned int nBytesToDelete);
     void deleteFile(char* fileNameToDelete);
     void printDiskUsageInfo();
+    void createChildDirectory(uint16_t directoryINumber, char* childName);
     void listDirectory(uint16_t directoryINumber);
-
+    void addLink(uint16_t fileINumber);
+    void removeLink(uint16_t fileINumber);
 };
 
 

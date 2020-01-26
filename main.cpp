@@ -14,15 +14,16 @@ int main(int argc, char** argv)
     }
 
     VirtualDisk myDisk(argv[1]);
-    myDisk.listDirectory(0);
-    /*myDisk.printDiskUsageInfo();
+    myDisk.printDiskUsageInfo();
     myDisk.copyToVDisk("test2");
+    myDisk.listDirectory(0);
     myDisk.printDiskUsageInfo();
     myDisk.deleteBytes("test2", 10000);
     myDisk.printDiskUsageInfo();
     myDisk.addBytes("test2", 12000);
     myDisk.printDiskUsageInfo();
-    myDisk.copyFromVDisk("test2");*/
+    myDisk.copyFromVDisk("test2");
+    myDisk.listDirectory(0);
 
     return 0;
 }
