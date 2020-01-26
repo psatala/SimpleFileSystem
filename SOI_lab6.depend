@@ -1,9 +1,9 @@
 # depslib dependency file v1.0
-1580068874 source:/home/psatala/Codeblocks/SOI_lab6/main.cpp
+1580081896 source:/home/psatala/Codeblocks/SOI_lab6/main.cpp
 	"CommandLineInterpreter.h"
 	<string.h>
 
-1580068382 /home/psatala/Codeblocks/SOI_lab6/VirtualDisk.h
+1580081615 /home/psatala/Codeblocks/SOI_lab6/VirtualDisk.h
 	<iostream>
 	<string>
 	<vector>
@@ -14,9 +14,9 @@
 
 1580045735 /home/psatala/Codeblocks/SOI_lab6/Defines.h
 
-1580074359 source:/home/psatala/Codeblocks/SOI_lab6/VirtualDisk.cpp
+1580081615 source:/home/psatala/Codeblocks/SOI_lab6/VirtualDisk.cpp
 	"VirtualDisk.h"
 
-1580073475 /home/psatala/Codeblocks/SOI_lab6/CommandLineInterpreter.h
+1580082352 /home/psatala/Codeblocks/SOI_lab6/CommandLineInterpreter.h
 	"VirtualDisk.h"
 

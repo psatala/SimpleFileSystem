@@ -63,6 +63,11 @@ class VirtualDisk
     void openFile();
     void closeFile();
     void prepareBitmaps();
+
+    void setVDiskSize(int newSize);
+    int getVDiskSize();
+    void setVDiskParameters();
+
     short int createEmptyDirectory();
     void createRootDirectory();
     void createChildDirectory(uint16_t directoryINumber, char* childName);
@@ -86,14 +91,11 @@ public:
     VirtualDisk(char* newVDiskFileName = DEFAULT_NAME, int diskSize = -1);
     ~VirtualDisk();
 
-    void setVDiskSize(int newSize);
-    int getVDiskSize();
-    void setVDiskParameters();
-    void copyToVDisk(std::string filePathToCopy);
-    void copyFromVDisk(char* fileNameToCopy);
-    void addBytes(char* fileName, unsigned int nBytesToAdd);
-    void deleteBytes(char* fileName, unsigned int nBytesToDelete);
-    void deleteFile(char* fileNameToDelete);
+    void copyToVDisk(char* fileNameToCopy, std::string path);
+    void copyFromVDisk(std::string path, char* fileNameToCopy);
+    void addBytes(std::string path, unsigned int nBytesToAdd);
+    void deleteBytes(std::string path, unsigned int nBytesToDelete);
+    void deleteFile(std::string path);
     void printDiskUsageInfo();
     void createNewDirectory(std::string path);
     void changeDirectory(std::string path);

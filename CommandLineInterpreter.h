@@ -98,6 +98,36 @@ int CommandLineInterpreter::interpretCommand(std::vector<std::string> parsedComm
         if(-1 != checkArgumentCount(parsedCommand.size(), 2, 2))
             vDisk->createNewDirectory(parsedCommand[1]);
     }
+    else if("ucp" == parsedCommand[0])                                               ///ucp command - up copy
+    {
+        if(-1 != checkArgumentCount(parsedCommand.size(), 3, 3))
+            vDisk->copyToVDisk((char*)parsedCommand[1].c_str(), parsedCommand[2]);
+    }
+    else if("dcp" == parsedCommand[0])                                               ///dcp command - down copy
+    {
+        if(-1 != checkArgumentCount(parsedCommand.size(), 3, 3))
+            vDisk->copyFromVDisk(parsedCommand[1], (char*)parsedCommand[2].c_str());
+    }
+    else if("ab" == parsedCommand[0])                                                ///ab command - add bytes
+    {
+        if(-1 != checkArgumentCount(parsedCommand.size(), 3, 3))
+            vDisk->addBytes(parsedCommand[1], (unsigned int)stoi(parsedCommand[2]));
+    }
+    else if("db" == parsedCommand[0])                                                ///db command - delete bytes
+    {
+        if(-1 != checkArgumentCount(parsedCommand.size(), 3, 3))
+            vDisk->deleteBytes(parsedCommand[1], (unsigned int)stoi(parsedCommand[2]));
+    }
+    else if("ln" == parsedCommand[0])                                                ///ln command
+    {
+        if(-1 != checkArgumentCount(parsedCommand.size(), 3, 3))
+            vDisk->addLink(parsedCommand[1], parsedCommand[2]);
+    }
+    else if("rm" == parsedCommand[0])                                                ///rm command
+    {
+        if(-1 != checkArgumentCount(parsedCommand.size(), 2, 2))
+            vDisk->deleteFile(parsedCommand[1]);
+    }
     else if("exit" == parsedCommand[0])                                              ///exit command
     {
         if(-1 != checkArgumentCount(parsedCommand.size(), 1, 1))
