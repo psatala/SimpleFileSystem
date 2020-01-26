@@ -14,7 +14,17 @@ int main(int argc, char** argv)
     }
 
     VirtualDisk myDisk(argv[1]);
-    myDisk.printDiskUsageInfo();
+    myDisk.createNewDirectory("newDir");
+    myDisk.listDirectory();
+    myDisk.changeDirectory("newDir");
+    myDisk.listDirectory();
+    myDisk.createNewDirectory("../wololo");
+    myDisk.changeDirectory("..");
+    myDisk.copyToVDisk("wololo/test2");
+    myDisk.listDirectory();
+    myDisk.changeDirectory("wololo");
+    myDisk.listDirectory();
+    /*myDisk.printDiskUsageInfo();
     myDisk.copyToVDisk("test2");
     myDisk.listDirectory(0);
     myDisk.printDiskUsageInfo();
@@ -24,6 +34,6 @@ int main(int argc, char** argv)
     myDisk.printDiskUsageInfo();
     myDisk.copyFromVDisk("test2");
     myDisk.listDirectory(0);
-
+*/
     return 0;
 }

@@ -34,6 +34,8 @@
 #define BYTE_SIZE 8
 #define FREE 0
 #define USED 1
+#define MODE_CD 1
+#define MODE_OTHER 2
 
 
 #endif // DEFINES_H_INCLUDED

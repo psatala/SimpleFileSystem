@@ -86,10 +86,19 @@ void VirtualDisk::createRootDirectory()
 {
     uint16_t rootINumber = createEmptyDirectory();
     currentDirectory = rootINumber;
-    path = "/";
 
     addDirectoryEntry(rootINumber, rootINumber, ".");
     addDirectoryEntry(rootINumber, rootINumber, "..");
+}
+
+
+
+void VirtualDisk::createChildDirectory(uint16_t directoryINumber, char* childName)
+{
+    uint16_t childDirectoryINumber = createEmptyDirectory();
+    addDirectoryEntry(childDirectoryINumber, childDirectoryINumber, ".");
+    addDirectoryEntry(childDirectoryINumber, directoryINumber, "..");
+    addDirectoryEntry(directoryINumber, childDirectoryINumber, childName);
 }
 
 
@@ -294,11 +303,33 @@ std::vector<std::string> VirtualDisk::parsePath(std::string path)
 
 
 
-uint16_t VirtualDisk::specifyWorkingDirectory(std::vector<std::string> parsedPath)
+short int VirtualDisk::specifyWorkingDirectory(std::vector<std::string> parsedPath, int mode)
 {
-    for(int i = 0; i < parsedPath.size() - 1; ++i) ///everything but last entry
-    {
+    bool isDirectory;
+    int limit;  ///how far to go
 
+    workingDirectory = currentDirectory; ///start from current directory
+
+    if(MODE_CD == mode)
+        limit = parsedPath.size();       ///go through everything - just like in cd command
+    else
+        limit = parsedPath.size() - 1;   ///go through everything but last one - just like in mkdir command
+
+    for(int i = 0; i < limit; ++i)
+    {
+        ///find i-number for this directory
+        workingDirectory = getINumber((char*)parsedPath[i].c_str(), (uint16_t)workingDirectory);
+
+        ///check if it is a directory
+        fseek(vDiskFile, firstINodeIndex * BLOCK_SIZE + workingDirectory * I_NODE_SIZE + IS_DIRECTORY_OFFSET, SEEK_SET);
+        fread(&isDirectory, sizeof(isDirectory), 1, vDiskFile);
+
+        ///exit if could not find
+        if(-1 == workingDirectory || !isDirectory)
+        {
+            std::cerr << parsedPath[i] << ": no such directory!\n";
+            return -1;
+        }
     }
 }
 
@@ -371,7 +402,7 @@ void VirtualDisk::setVDiskParameters()
 
 
 
-void VirtualDisk::copyToVDisk(char* fileNameToCopy)
+void VirtualDisk::copyToVDisk(std::string filePathToCopy)
 {
     FILE* fileToCopy;
     unsigned char* buffer = new unsigned char [BLOCK_SIZE]; ///auxiliary buffer to store data
@@ -395,9 +426,12 @@ void VirtualDisk::copyToVDisk(char* fileNameToCopy)
 
     fseek(vDiskFile, firstINodeIndex * BLOCK_SIZE + iNumber * I_NODE_SIZE + LINK_COUNT_OFFSET, SEEK_SET);
     fwrite((const void* ) &linkCount, sizeof(linkCount), 1, vDiskFile);  ///set link count to 0
-    addDirectoryEntry(currentDirectory, iNumber, fileNameToCopy);        ///this will increment it
 
-    fileToCopy = fopen(fileNameToCopy, "rb+");
+    std::vector<std::string> parsedPath = parsePath(filePathToCopy);
+    specifyWorkingDirectory(parsedPath, MODE_OTHER);
+    addDirectoryEntry(workingDirectory, iNumber, (char*)parsedPath.back().c_str());        ///this will increment link count
+
+    fileToCopy = fopen((char*)parsedPath.back().c_str(), "rb+");
 
     while((bytesRead = fread(buffer, 1, BLOCK_SIZE, fileToCopy)) > 0 && countBlocks < MAX_FILE_SIZE_IN_BLOCKS)
     {
@@ -706,13 +740,14 @@ void VirtualDisk::printDiskUsageInfo()
 
 
 
-void VirtualDisk::listDirectory(uint16_t directoryINumber)
+void VirtualDisk::listDirectory()
 {
     uint16_t blockAddress;
     uint16_t sizeOfDirectory;
     uint16_t entryINumber;
     uint16_t entryLinkCount;
     uint16_t entrySize;
+    uint16_t directoryINumber = (uint16_t)currentDirectory;
     bool entryFileType;
     char* entryName = new char[DIRECTORY_NAME_SIZE];
 
@@ -754,16 +789,25 @@ void VirtualDisk::listDirectory(uint16_t directoryINumber)
         fread(entryName, sizeof(char), DIRECTORY_NAME_SIZE, vDiskFile);
         puts(entryName);
     }
+    std::cout << "\n";
 }
 
 
 
-void VirtualDisk::createChildDirectory(uint16_t directoryINumber, char* childName)
+void VirtualDisk::createNewDirectory(std::string path)
 {
-    uint16_t childDirectoryINumber = createEmptyDirectory();
-    addDirectoryEntry(childDirectoryINumber, childDirectoryINumber, ".");
-    addDirectoryEntry(childDirectoryINumber, directoryINumber, "..");
-    addDirectoryEntry(directoryINumber, childDirectoryINumber, childName);
+    std::vector<std::string> parsedPath = parsePath(path);
+    specifyWorkingDirectory(parsedPath, MODE_OTHER);
+    createChildDirectory(workingDirectory, (char*)parsedPath.back().c_str());
+}
+
+
+
+void VirtualDisk::changeDirectory(std::string path)
+{
+    std::vector<std::string> parsedPath = parsePath(path);
+    specifyWorkingDirectory(parsedPath, MODE_CD);
+    currentDirectory = workingDirectory;
 }
 
 
