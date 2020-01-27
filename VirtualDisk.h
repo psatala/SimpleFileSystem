@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "Defines.h"
 
@@ -80,6 +81,7 @@ class VirtualDisk
 
     short int getINumber(char* fileName, uint16_t directoryINumber);
     void addDirectoryEntry(short int directoryINumber, short int iNumberToAdd, char* fileNameToAdd);
+    void deleteDirectoryEntry(short int directoryINumber, char* fileNameToDelete);
     std::vector<std::string> parsePath(std::string path);
     short int specifyWorkingDirectory(std::vector<std::string> parsedPath, int mode = MODE_CD);
 

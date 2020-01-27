@@ -3,13 +3,14 @@
 	"CommandLineInterpreter.h"
 	<string.h>
 
-1580139486 /home/psatala/Codeblocks/SOI_lab6/VirtualDisk.h
+1580141280 /home/psatala/Codeblocks/SOI_lab6/VirtualDisk.h
 	<iostream>
 	<string>
 	<vector>
 	<unistd.h>
 	<stdlib.h>
 	<stdint.h>
+	<string.h>
 	"Defines.h"
 
 1580045735 /home/psatala/Codeblocks/SOI_lab6/Defines.h
