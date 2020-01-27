@@ -104,6 +104,7 @@ public:
     void listDirectory();
     void printPath();
     void addLink(std::string target, std::string linkName);
+    void printOnConsole(std::string path);
 };
 
 

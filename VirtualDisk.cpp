@@ -988,3 +988,61 @@ void VirtualDisk::addLink(std::string target, std::string linkName)
     specifyWorkingDirectory(parsedPathToNewLink, MODE_OTHER);
     addDirectoryEntry((short int)workingDirectory, iNumber, (char*)parsedPathToNewLink.back().c_str());
 }
+
+
+
+void VirtualDisk::printOnConsole(std::string path)
+{
+    unsigned char* buffer = new unsigned char [BLOCK_SIZE]; ///auxiliary buffer to store data
+    uint16_t blockAddress;
+    uint16_t countBlocks;
+    uint16_t bytesUsedInLastBlock;
+    short int iNumber;
+    uint16_t expectedBytes;
+    uint32_t fileSize;
+
+    std::vector<std::string> parsedPath = parsePath(path);
+    specifyWorkingDirectory(parsedPath, MODE_OTHER);
+
+    iNumber = getINumber((char*)parsedPath.back().c_str(), workingDirectory);
+    if(-1 == iNumber)
+    {
+        std::cerr << "No such file exists!\n";
+        return;
+    }
+
+    ///read size of file
+    fseek(vDiskFile, firstINodeIndex * BLOCK_SIZE + iNumber * I_NODE_SIZE + SIZE_OFFSET, SEEK_SET);
+    fread(&fileSize, sizeof(fileSize), 1, vDiskFile);
+
+
+    ///calculate count blocks and how many bytes in last block were used
+    bytesUsedInLastBlock = (uint16_t)(fileSize % BLOCK_SIZE);
+    countBlocks = (uint16_t)(fileSize / BLOCK_SIZE);
+    if(bytesUsedInLastBlock) ///last block not empty
+        ++countBlocks;
+
+    for(int i = 0; i < countBlocks; ++i)
+    {
+        if(i < countBlocks - 1) ///normal case
+            expectedBytes = BLOCK_SIZE;
+        else                    ///last block case
+            expectedBytes = bytesUsedInLastBlock;
+
+
+        ///read block address
+        fseek(vDiskFile, firstINodeIndex * BLOCK_SIZE + iNumber * I_NODE_SIZE + DATA_OFFSET + i * ADDRESS_SIZE, SEEK_SET);
+        fread(&blockAddress, sizeof(uint16_t), 1, vDiskFile);
+
+        ///read block content into buffer
+        fseek(vDiskFile, (firstDataIndex + blockAddress) * BLOCK_SIZE, SEEK_SET);
+
+
+        if(expectedBytes != fread(buffer, 1, expectedBytes, vDiskFile))
+        {
+            std::cerr << "Could not read the entire block!\n";
+            return;
+        }
+        std::cout << buffer;
+    }
+}

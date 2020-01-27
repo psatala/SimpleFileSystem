@@ -3,7 +3,7 @@
 	"CommandLineInterpreter.h"
 	<string.h>
 
-1580141280 /home/psatala/Codeblocks/SOI_lab6/VirtualDisk.h
+1580141741 /home/psatala/Codeblocks/SOI_lab6/VirtualDisk.h
 	<iostream>
 	<string>
 	<vector>
@@ -15,9 +15,9 @@
 
 1580045735 /home/psatala/Codeblocks/SOI_lab6/Defines.h
 
-1580138402 source:/home/psatala/Codeblocks/SOI_lab6/VirtualDisk.cpp
+1580141741 source:/home/psatala/Codeblocks/SOI_lab6/VirtualDisk.cpp
 	"VirtualDisk.h"
 
-1580082352 /home/psatala/Codeblocks/SOI_lab6/CommandLineInterpreter.h
+1580141833 /home/psatala/Codeblocks/SOI_lab6/CommandLineInterpreter.h
 	"VirtualDisk.h"
 

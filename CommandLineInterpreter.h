@@ -128,6 +128,11 @@ int CommandLineInterpreter::interpretCommand(std::vector<std::string> parsedComm
         if(-1 != checkArgumentCount(parsedCommand.size(), 2, 2))
             vDisk->deleteFile(parsedCommand[1]);
     }
+    else if("cat" == parsedCommand[0])                                               ///cat command
+    {
+        if(-1 != checkArgumentCount(parsedCommand.size(), 2, 2))
+            vDisk->printOnConsole(parsedCommand[1]);
+    }
     else if("exit" == parsedCommand[0])                                              ///exit command
     {
         if(-1 != checkArgumentCount(parsedCommand.size(), 1, 1))
