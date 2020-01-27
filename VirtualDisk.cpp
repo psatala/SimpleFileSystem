@@ -877,9 +877,11 @@ void VirtualDisk::createNewDirectory(std::string path)
 void VirtualDisk::changeDirectory(std::string path)
 {
     std::vector<std::string> parsedPath = parsePath(path);
-    specifyWorkingDirectory(parsedPath, MODE_CD);
-    currentDirectory = workingDirectory;
-    pathToCurrentDir = workingPath;
+    if(-1 != specifyWorkingDirectory(parsedPath, MODE_CD))
+    {
+        currentDirectory = workingDirectory;
+        pathToCurrentDir = workingPath;
+    }
 }
 
 
