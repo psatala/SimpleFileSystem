@@ -1,0 +1,8 @@
+ucp smallFile a
+ln a aa
+ln a aaa
+ln a aaaa
+rm aaa
+ls
+cat aaaa
+exit

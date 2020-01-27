@@ -2,3 +2,5 @@
 
 ./vDisk vDiskTest.vdf 1000000 < "$1"
 
+rm vDiskTest.vdf
+
