@@ -1,0 +1,15 @@
+bin
+obj
+emptyDiskFile.vdf
+largeFile
+makefile
+myDiskFile.vdf
+smallFile
+smallFileExt
+SOI_lab6.cbp
+SOI_lab6,depend
+SOI_lab6.layout
+test1
+test2
+testingScript
+vDisk
