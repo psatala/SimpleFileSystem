@@ -1,24 +1,68 @@
+///Name: CommandLineInterpreter.h
+///Purpose: declaration and definition of CommandLineInterpreter - class handling interaction between user and the virtual disk
+
+
+
 #ifndef COMMANDLINEINTERPRETER_H_INCLUDED
 #define COMMANDLINEINTERPRETER_H_INCLUDED
+
 
 #include "VirtualDisk.h"
 
 
+
 class CommandLineInterpreter
 {
-    VirtualDisk *vDisk;
+    VirtualDisk *vDisk; ///pointer to virtual disk
 
+
+
+    ///function prints incentive ($) for the user to type
     void printIncentive();
+
+
+
+    ///function gets command from standard input and parses it
+    ///return value: parsed command in vector form
     std::vector<std::string> parseCommand();
+
+
+
+    ///function interprets command
+    ///parameters: parsed command
+    ///return value: -1 if exit chosen, else 0
     int interpretCommand(std::vector<std::string> parsedCommand);
+
+
+
+    ///function checks argument count and displays appropriate error message
+    ///parameters: count of arguments given by the user, minimum number of arguments for given function, maximum number of arguments for given function
+    ///return value: -1 if incorrect number of arguments, else 0
     int checkArgumentCount(int argCount, int minCount, int maxCount);
+
+
+
 public:
+
+
+
+    ///constructor
+    ///parameters: name of virtual disk file, size of virtual disk
     CommandLineInterpreter(char* vDiskFileName = DEFAULT_NAME, int vDiskSize = -1);
+
+
+
+    ///function running the command line interpreter in a loop
     void run();
+
+
+
 };
 
 
 
+///constructor
+///parameters: name of virtual disk file, size of virtual disk
 CommandLineInterpreter::CommandLineInterpreter(char* vDiskFileName, int vDiskSize)
 {
     vDisk = new VirtualDisk(vDiskFileName, vDiskSize);
@@ -27,6 +71,7 @@ CommandLineInterpreter::CommandLineInterpreter(char* vDiskFileName, int vDiskSiz
 
 
 
+///function running the command line interpreter in a loop
 void CommandLineInterpreter::run()
 {
     while(1)
@@ -38,12 +83,17 @@ void CommandLineInterpreter::run()
 }
 
 
+
+///function prints incentive ($) for the user to type
 void CommandLineInterpreter::printIncentive()
 {
     std::cout << "Virtual_Disk$ ";
 }
 
 
+
+///function gets command from standard input and parses it
+///return value: parsed command in vector form
 std::vector<std::string> CommandLineInterpreter::parseCommand()
 {
     std::string command;
@@ -66,6 +116,9 @@ std::vector<std::string> CommandLineInterpreter::parseCommand()
 
 
 
+///function interprets command
+///parameters: parsed command
+///return value: -1 if exit chosen, else 0
 int CommandLineInterpreter::interpretCommand(std::vector<std::string> parsedCommand)
 {
     int returnValue = 0;
@@ -149,6 +202,9 @@ int CommandLineInterpreter::interpretCommand(std::vector<std::string> parsedComm
 
 
 
+///function checks argument count and displays appropriate error message
+///parameters: count of arguments given by the user, minimum number of arguments for given function, maximum number of arguments for given function
+///return value: -1 if incorrect number of arguments, else 0
 int CommandLineInterpreter::checkArgumentCount(int argCount, int minCount, int maxCount)
 {
     int returnValue = 0;

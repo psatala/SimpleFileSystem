@@ -1,3 +1,9 @@
+///Name: Defines.h
+///Purpose: define constants specifying disk features
+
+
+
+
 #ifndef DEFINES_H_INCLUDED
 #define DEFINES_H_INCLUDED
 

@@ -1,12 +1,19 @@
+///Name: VirtualDisk.cpp
+///Purpose: define methods from VirtualDisk class - the most important class of the program
+
+
+
 #include "VirtualDisk.h"
 
 
 
 /********************************************************************************************************************************************************************************************
- *                                                                           private functions                                                                                              *
+ *                                                                           private methods                                                                                                *
  ********************************************************************************************************************************************************************************************/
 
 
+
+///function opens file from user system be used for virtual disk implementation
 void VirtualDisk::openFile()
 {
 
@@ -25,6 +32,7 @@ void VirtualDisk::openFile()
 
 
 
+///function closes file from user system be used for virtual disk implementation
 void VirtualDisk::closeFile()
 {
     fclose(vDiskFile);
@@ -32,6 +40,7 @@ void VirtualDisk::closeFile()
 
 
 
+///function clears i-node and data bitmaps during virtual disk creation
 void VirtualDisk::prepareBitmaps()
 {
     if(0 == findNextFreeInode())   ///root directory not yet created - file sytem being created, not restored
@@ -46,6 +55,8 @@ void VirtualDisk::prepareBitmaps()
 
 
 
+///function sets virtual disk size
+///parameters: new size of virtual disk (in bytes)
 void VirtualDisk::setVDiskSize(int newSize)
 {
 
@@ -67,6 +78,8 @@ void VirtualDisk::setVDiskSize(int newSize)
 
 
 
+///function gets virtual disk size
+///return value: size of virtual disk
 int VirtualDisk::getVDiskSize()
 {
     return vDiskSize;
@@ -74,7 +87,7 @@ int VirtualDisk::getVDiskSize()
 
 
 
-///based on disk size, calculate where bitmaps, i-node table and user data are
+///function sets virtual disk parameters during virtual disk creation - based on disk size, calculate where bitmaps, i-node table and user data are
 void VirtualDisk::setVDiskParameters()
 {
     vDiskSize = getVDiskSize();
@@ -90,6 +103,8 @@ void VirtualDisk::setVDiskParameters()
 
 
 
+///function creates empty directory
+///return value: i-number of created directory
 short int VirtualDisk::createEmptyDirectory()
 {
     short int iNumber = findNextFreeInode();
@@ -128,6 +143,7 @@ short int VirtualDisk::createEmptyDirectory()
 
 
 
+///function creates root directory
 void VirtualDisk::createRootDirectory()
 {
     if(0 == findNextFreeInode()) ///root directory not yet created - file sytem being created, not restored
@@ -142,6 +158,8 @@ void VirtualDisk::createRootDirectory()
 
 
 
+///function creates child directory
+///parameters: i-number of parent directory, name of child directory
 void VirtualDisk::createChildDirectory(uint16_t directoryINumber, char* childName)
 {
     uint16_t childDirectoryINumber = createEmptyDirectory();
@@ -152,6 +170,8 @@ void VirtualDisk::createChildDirectory(uint16_t directoryINumber, char* childNam
 
 
 
+///function adds directory entry
+///parameters: i-number of directory to add in. i-number of file to add, name of file to add
 void VirtualDisk::addDirectoryEntry(short int directoryINumber, short int iNumberToAdd, char* fileNameToAdd)
 {
     uint16_t blockAddress;
@@ -192,6 +212,8 @@ void VirtualDisk::addDirectoryEntry(short int directoryINumber, short int iNumbe
 
 
 
+///function deletes directory entry
+///parameters: i-number of directory to delete from, name of file to delete
 void VirtualDisk::deleteDirectoryEntry(short int directoryINumber, char* fileNameToDelete)
 {
     uint16_t blockAddress;
@@ -244,6 +266,8 @@ void VirtualDisk::deleteDirectoryEntry(short int directoryINumber, char* fileNam
 
 
 
+///function finds next free data block
+///return value: index of first free data block
 short int VirtualDisk::findNextFreeBlock()
 {
     bool found = false;
@@ -263,6 +287,8 @@ short int VirtualDisk::findNextFreeBlock()
 
 
 
+///function finds next free i-node
+///return value: first free i-number
 short int VirtualDisk::findNextFreeInode()
 {
     bool found = false;
@@ -282,6 +308,8 @@ short int VirtualDisk::findNextFreeInode()
 
 
 
+///function changes data block status
+///parameters: index of data block to change, new status (free or used)
 void VirtualDisk::changeBlockStatus(int blockId, bool newStatus)
 {
     unsigned char c;
@@ -306,6 +334,8 @@ void VirtualDisk::changeBlockStatus(int blockId, bool newStatus)
 
 
 
+///function changes i-node status
+///parameters: i-number to change, new status (free or used)
 void VirtualDisk::changeINodeStatus(int iNodeId, bool newStatus)
 {
     unsigned char c;
@@ -330,6 +360,9 @@ void VirtualDisk::changeINodeStatus(int iNodeId, bool newStatus)
 
 
 
+///function checks status of a bit from a given bitmap
+///parameters: id of bitmap (i-node or data block), id of entry on that bitmap
+///return value: status of bit (free or used)
 bool VirtualDisk::checkBitFromBitmap(int bitmapId, int entryId)
 {
     unsigned char c;
@@ -347,6 +380,9 @@ bool VirtualDisk::checkBitFromBitmap(int bitmapId, int entryId)
 
 
 
+///function gets i-number of given file from a given directory
+///parameters: name of file, i-number of directory to search in
+///return value: i-number of given file
 short int VirtualDisk::getINumber(char* fileName, uint16_t directoryINumber)
 {
     bool found = false;
@@ -388,6 +424,9 @@ short int VirtualDisk::getINumber(char* fileName, uint16_t directoryINumber)
 
 
 
+///function parses path - from string to vector
+///parameters: path in string form
+///return value: path in vector form
 std::vector<std::string> VirtualDisk::parsePath(std::string path)
 {
     std::vector<std::string> parsedPath;
@@ -410,6 +449,9 @@ std::vector<std::string> VirtualDisk::parsePath(std::string path)
 
 
 
+///function interprets parsed path to specify working (temporary current) directory
+///parameters: parsed path in vector form, mode of specifying (whether to interpret last element of parsed path or not)
+///return value: -1 if could not resolve parsed path
 short int VirtualDisk::specifyWorkingDirectory(std::vector<std::string> parsedPath, int mode)
 {
     bool isDirectory;
@@ -449,6 +491,8 @@ short int VirtualDisk::specifyWorkingDirectory(std::vector<std::string> parsedPa
 
 
 
+///function increases link count of a given file
+///parameters: i-number of file to increase link counter
 void VirtualDisk::increaseLinkCount(uint16_t fileINumber)
 {
     uint16_t linkCount;
@@ -461,6 +505,8 @@ void VirtualDisk::increaseLinkCount(uint16_t fileINumber)
 
 
 
+///function decreases link count of a given file
+///parameters: i-number of file to decrease link counter
 void VirtualDisk::decreaseLinkCount(uint16_t fileINumber)
 {
     uint16_t linkCount;
@@ -476,10 +522,13 @@ void VirtualDisk::decreaseLinkCount(uint16_t fileINumber)
 
 
 /********************************************************************************************************************************************************************************************
- *                                                                           public functions                                                                                               *
+ *                                                                           public methods                                                                                                 *
  ********************************************************************************************************************************************************************************************/
 
 
+
+///constructor
+///parameters: name of virtual disk file, size of virtual disk file
 VirtualDisk::VirtualDisk(char* newVDiskFileName, int diskSize)
 {
     vDiskFileName = newVDiskFileName;
@@ -492,6 +541,7 @@ VirtualDisk::VirtualDisk(char* newVDiskFileName, int diskSize)
 
 
 
+///destructor
 VirtualDisk::~VirtualDisk()
 {
     closeFile();
@@ -499,6 +549,8 @@ VirtualDisk::~VirtualDisk()
 
 
 
+///function copies file from user system to virtual disk
+///parameters: name of file to copy from user system, path to target location
 void VirtualDisk::copyToVDisk(char* fileNameToCopy, std::string path)
 {
     FILE* fileToCopy;
@@ -577,6 +629,8 @@ void VirtualDisk::copyToVDisk(char* fileNameToCopy, std::string path)
 
 
 
+///function copies file from virtual disk to user system
+///parameters: path to file on virtual disk, name of target file on user system
 void VirtualDisk::copyFromVDisk(std::string path, char* fileNameToCopy)
 {
     FILE* fileToCopy;
@@ -650,6 +704,8 @@ void VirtualDisk::copyFromVDisk(std::string path, char* fileNameToCopy)
 
 
 
+///function deletes a file from virtual disk
+///parameters: path to file to delete
 void VirtualDisk::deleteFile(std::string path)
 {
     uint16_t blockAddress;
@@ -713,6 +769,8 @@ void VirtualDisk::deleteFile(std::string path)
 
 
 
+///function adds null bytes to the end of given file
+///parameters: path to file, number of bytes to add
 void VirtualDisk::addBytes(std::string path, unsigned int nBytesToAdd)
 {
     short int iNumber;
@@ -777,6 +835,8 @@ void VirtualDisk::addBytes(std::string path, unsigned int nBytesToAdd)
 
 
 
+///function deletes bytes from the end of a given file
+///parameters: path to file, number of bytes to delete
 void VirtualDisk::deleteBytes(std::string path, unsigned int nBytesToDelete)
 {
     short int iNumber;
@@ -836,6 +896,7 @@ void VirtualDisk::deleteBytes(std::string path, unsigned int nBytesToDelete)
 
 
 
+///function prints disk usage info
 void VirtualDisk::printDiskUsageInfo()
 {
     int nInodesTotal = nInodeBlocks * BLOCK_SIZE / I_NODE_SIZE;
@@ -872,6 +933,7 @@ void VirtualDisk::printDiskUsageInfo()
 
 
 
+///function lists current directory
 void VirtualDisk::listDirectory()
 {
     uint16_t blockAddress;
@@ -925,6 +987,8 @@ void VirtualDisk::listDirectory()
 
 
 
+///function creates new directory in location specified by given path
+///parameters: path to new directory
 void VirtualDisk::createNewDirectory(std::string path)
 {
     std::vector<std::string> parsedPath = parsePath(path);
@@ -934,6 +998,8 @@ void VirtualDisk::createNewDirectory(std::string path)
 
 
 
+///function changes current directory
+///parameters: path to new current directory
 void VirtualDisk::changeDirectory(std::string path)
 {
     std::vector<std::string> parsedPath = parsePath(path);
@@ -946,6 +1012,7 @@ void VirtualDisk::changeDirectory(std::string path)
 
 
 
+///function prints path to current directory
 void VirtualDisk::printPath()
 {
     if(pathToCurrentDir.empty())                       ///root directory
@@ -959,6 +1026,8 @@ void VirtualDisk::printPath()
 
 
 
+///function adds link to a given file
+///parameters: path to existing file, path to new file
 void VirtualDisk::addLink(std::string target, std::string linkName)
 {
     short int iNumber;
@@ -991,6 +1060,8 @@ void VirtualDisk::addLink(std::string target, std::string linkName)
 
 
 
+///function prints contents of a given file on console
+///parameters: path to file to print on console
 void VirtualDisk::printOnConsole(std::string path)
 {
     unsigned char* buffer = new unsigned char [BLOCK_SIZE]; ///auxiliary buffer to store data
